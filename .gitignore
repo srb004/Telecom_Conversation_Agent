@@ -1,0 +1,18 @@
+.env
+# Ignore virtual environment
+.venv/
+venv/
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore local Python package folders
+*.egg-info/
+*.egg/
+dist/
+build/
+site-packages/
