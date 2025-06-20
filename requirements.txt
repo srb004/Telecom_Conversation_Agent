@@ -1,0 +1,17 @@
+langchain
+langchain-openai
+python-dotenv
+numpy
+pandas
+langchain-groq
+ipykernel
+langchain-core
+langchain-community
+faiss-cpu
+langchain-huggingface
+sentence_transformers
+pydantic
+defusedxml
+pypdf
+langgraph
+unstructured
