@@ -1,0 +1,119 @@
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f5f9ff;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.top-bar {
+    background-color: #0f172a;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.brand {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.profile-pic {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid white;
+}
+
+.share-btn {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.chat-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+.chat-window {
+    flex: 1;
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    overflow-y: auto;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.message {
+    display: flex;
+    max-width: 80%;
+    padding: 10px;
+    border-radius: 10px;
+    align-items: flex-start;
+}
+
+.message.user {
+    align-self: flex-start;
+    background-color: #e0f7fa;
+    border-top-left-radius: 0;
+}
+
+.message.bot {
+    align-self: flex-end;
+    background-color: #d9f5cb;
+    border-top-right-radius: 0;
+    flex-direction: row-reverse;
+}
+
+.message .icon {
+    font-size: 1.5rem;
+    margin: 0 10px;
+}
+
+.message .text {
+    white-space: pre-wrap;
+    line-height: 1.4;
+    flex: 1;
+}
+
+.input-area {
+    display: flex;
+    margin-top: 10px;
+    gap: 10px;
+}
+
+textarea {
+    flex: 1;
+    resize: none;
+    padding: 12px;
+    font-size: 1em;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    height: 60px;
+}
+
+button {
+    padding: 12px 24px;
+    background-color: #2563eb;
+    color: white;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
