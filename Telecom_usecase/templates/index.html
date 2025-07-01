@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PulseTalk AI 🤖</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="top-bar">
+        <div class="brand">PulseTalk AI 🤖 | Smarter Conversations. Faster Solutions</div>
+        <div class="header-actions">
+            <a href="#" class="share-btn">🔗 Share</a>
+            <div class="profile-icon">👤</div>
+        </div>
+    </div>
+
+    <div class="chat-wrapper">
+        <div class="chat-window" id="chat_response">
+            <!-- Messages will appear here -->
+        </div>
+
+        <div class="input-area">
+            <textarea id="user_input" placeholder="Type your query..."></textarea>
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const user_input = document.getElementById("user_input").value;
+            if (!user_input.trim()) return;
+
+            const chatWindow = document.getElementById("chat_response");
+
+            // User message
+            const userMessage = document.createElement("div");
+            userMessage.className = "message user";
+            userMessage.innerHTML = `<div class="icon">👤</div><div class="text">${user_input}</div>`;
+            chatWindow.appendChild(userMessage);
+            document.getElementById("user_input").value = "";
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            // Typing bubble
+            const botTyping = document.createElement("div");
+            botTyping.className = "message bot";
+            botTyping.id = "typingBubble";
+            botTyping.innerHTML = `
+                <div class="icon">🤖</div>
+                <div class="typing-bubble">
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>`;
+            chatWindow.appendChild(botTyping);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            try {
+                const res = await fetch("/chat", {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_input })
+                });
+
+                const data = await res.json();
+                const fullText = data.response || "Sorry, something went wrong.";
+
+                // Remove typing bubble
+                const typingBubble = document.getElementById("typingBubble");
+                typingBubble.remove();
+
+                // Bot message with animation
+                const botMessage = document.createElement("div");
+                botMessage.className = "message bot";
+                botMessage.innerHTML = `<div class="icon">🤖</div><div class="text"></div>`;
+                chatWindow.appendChild(botMessage);
+                const textElement = botMessage.querySelector(".text");
+
+                let index = 0;
+                const typingInterval = setInterval(() => {
+                    if (index < fullText.length) {
+                        textElement.textContent += fullText.charAt(index);
+                        index++;
+                        chatWindow.scrollTop = chatWindow.scrollHeight;
+                    } else {
+                        clearInterval(typingInterval);
+                    }
+                }, 25);
+            } catch (error) {
+                const typingBubble = document.getElementById("typingBubble");
+                if (typingBubble) typingBubble.remove();
+
+                const botMessage = document.createElement("div");
+                botMessage.className = "message bot";
+                botMessage.innerHTML = `<div class="icon">🤖</div><div class="text">⚠️ Failed to get response.</div>`;
+                chatWindow.appendChild(botMessage);
+            }
+        }
+    </script>
+</body>
+</html>
