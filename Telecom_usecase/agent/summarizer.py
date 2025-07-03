@@ -4,6 +4,14 @@ from langchain_core.messages import AIMessage
 from langchain_groq import ChatGroq
 import re
 import ast
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+os.environ["HUGGINGFACE_API_KEY"] = os.getenv("HUGGINGFACE_API_KEY")
+
 
 
 # --- AgentState Definition ---
@@ -29,35 +37,37 @@ def summarizer_agent(state: AgentState) -> AgentState:
     intent = state.get("intent", "").lower()
     customer_id = state.get("customer_id")
     user_query = state["messages"][0].content
-
-    # Get the last assistant message
-    last_message = state["messages"][-1]
-
-    try:
-        # Parse the string as a Python dict
-        plan_explainer_msg = ast.literal_eval(last_message.content)
-    except Exception as e:
-        print("Failed to parse message content:", e)
-        plan_explainer_msg = {}
-
-    plan_details = plan_explainer_msg.get("plan_details", "")
-    query_response = plan_explainer_msg.get("query_response", "")
-    cross_sell_recommendation = plan_explainer_msg.get("cross_sell_recommendation", "")
-    reasoning = plan_explainer_msg.get("reasoning", "")
-
-    print("Intent:", intent)
-    print("Customer ID:", customer_id)
-    print("User Query:", user_query)
-    print("Plan Details:", plan_details)
-    print("Query Response:", query_response)
-    print("Cross-sell Recommendation:", cross_sell_recommendation)
-
+    customer_data = state.get("customer_data", "")
     base_inputs = {
         "customer_id": customer_id,
         "query": user_query,
+        "customer_data" : customer_data  
     }
 
+
     if intent == "plan":
+        # Get the last assistant message
+        last_message = state["messages"][-1]
+
+        try:
+            # Parse the string as a Python dict
+            plan_explainer_msg = ast.literal_eval(last_message.content)
+        except Exception as e:
+            print("Failed to parse message content:", e)
+            plan_explainer_msg = {}
+
+        plan_details = plan_explainer_msg.get("plan_details", "")
+        query_response = plan_explainer_msg.get("query_response", "")
+        cross_sell_recommendation = plan_explainer_msg.get("cross_sell_recommendation", "")
+        reasoning = plan_explainer_msg.get("reasoning", "")
+
+        print("Intent:", intent)
+        print("Customer ID:", customer_id)
+        print("User Query:", user_query)
+        print("Plan Details:", plan_details)
+        print("Query Response:", query_response)
+        print("Cross-sell Recommendation:", cross_sell_recommendation)
+
         template = """
 You are a warm, friendly telecom assistant. Write a helpful and human-like message in response to the user's plan concerns.
 
@@ -89,6 +99,8 @@ Recommended Upgrade: {cross_sell_recommendation}
     elif intent == "complaint":
         grievance_context = state.get("retrieved_context", "")
         complaint_response = state.get("complaint_resolution", "")
+        customer_data = state.get("customer_data", "")
+
 
         template = """
 You are a kind and professional telecom assistant helping a customer with a complaint.
@@ -101,12 +113,15 @@ Your goal is to:
 - Empathize with the customer. Keep your tone friendly, polite, and professional.
 - DO NOT refer to the context or resolution as being from another user — just use it to help you answer.
 - DO NOT mention bullet points, tags, or internal data. Just give a natural, conversational response in 3–4 lines.
+- Address the user by their name and do use the retrieved SQL query context to explain where the problem might 
+  happen and try to solve the problem.
 
 ---
 Customer ID: {customer_id}
 User Query: {query}
 Context: {grievance_context}
 Resolution: {complaint_response}
+customer_data : {customer_data}
         """
 
         inputs = {

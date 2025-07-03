@@ -6,8 +6,13 @@ from agent.rag_agent import RAG_agent
 from agent.plan_summary import Plan_Explainer
 from agent.summarizer import summarizer_agent
 from agent.router import router_node, AgentState  # Assuming both are defined
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+os.environ["HUGGINGFACE_API_KEY"] = os.getenv("HUGGINGFACE_API_KEY")
 # Build graph
 app_workflow = StateGraph(AgentState)
 

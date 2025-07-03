@@ -3,6 +3,13 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.messages import AIMessage
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+os.environ["HUGGINGFACE_API_KEY"] = os.getenv("HUGGINGFACE_API_KEY")
 
 # --- 1. Define Agent State ---
 class AgentState(TypedDict):
@@ -21,7 +28,7 @@ embedding_model = HuggingFaceEmbeddings(
 
 # --- 3. Load FAISS Vector Store ---
 local_vector_db = FAISS.load_local(
-    r'C:\Users\v-niranr\OneDrive - Microsoft\Desktop\Telecom Usecase\.telecomusecase_FAISS_DB',
+    r'C:\Users\bharath.sr.lv\Desktop\ConversationalAI\PulseTalkAI\GitVersionBot\Telecom_Agent\conversation_faiss_index',
     embeddings=embedding_model,
     allow_dangerous_deserialization=True
 )

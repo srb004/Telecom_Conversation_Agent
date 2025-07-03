@@ -3,11 +3,18 @@
 import sqlite3
 from typing import Dict, Any
 from langchain_community.utilities import SQLDatabase
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+os.environ["HUGGINGFACE_API_KEY"] = os.getenv("HUGGINGFACE_API_KEY")
 
 
 # --- 1. Direct SQL Query Function ---
 def get_customer_details(customer_id: str, db_path: str) -> dict:
-    db_path = "C:/Users/v-niranr/OneDrive - Microsoft/Desktop/Telecom Usecase/Data/telecom_usecase.db"
+    db_path = r"C:\Users\bharath.sr.lv\Desktop\ConversationalAI\PulseTalkAI\GitVersionBot\Telecom_Agent\telecom_customer.db"
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -16,7 +23,7 @@ def get_customer_details(customer_id: str, db_path: str) -> dict:
         "Customer ID", "Customer Name", Age, Gender, Location,
         "Plan Subscribed", "Device Used", "Plan Details",
         "Network Type", "Join Date", "Recent Issue Reported", "Response Provided"
-    FROM telecom_customer_table
+    FROM customers
     WHERE "Customer ID" = ?
     """
 

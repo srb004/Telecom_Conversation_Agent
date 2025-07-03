@@ -16,3 +16,12 @@ __pycache__/
 dist/
 build/
 site-packages/
+pulsetalkai/pyvenv.cfg
+pulsetalkai/Include/site/python3.10/greenlet/greenlet.h
+pulsetalkai/Scripts/activate
+pulsetalkai/Scripts/activate.bat
+pulsetalkai/
+# Ignore all __pycache__ directories and .pyc files in Telecom_usecase/agent
+Telecom_usecase/agent/__pycache__/
+Telecom_usecase/agent/*.pyc
+

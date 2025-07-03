@@ -1,6 +1,13 @@
 from flask import Flask, request, jsonify, render_template
 from agent.langgraph_config import app as langgraph_app  # ✅ your LangGraph workflow
 from langchain_core.messages import HumanMessage
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+os.environ["HUGGINGFACE_API_KEY"] = os.getenv("HUGGINGFACE_API_KEY")
 
 app = Flask(__name__)
 
