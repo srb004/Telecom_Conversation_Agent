@@ -5,6 +5,13 @@ from langchain.prompts import PromptTemplate
 from langchain_core.messages import AIMessage
 from langchain_groq import ChatGroq  # Adjust import if you use a different provider
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+os.environ["HUGGINGFACE_API_KEY"] = os.getenv("HUGGINGFACE_API_KEY")
 
 # --- 1. Agent State Definition ---
 class AgentState(TypedDict):

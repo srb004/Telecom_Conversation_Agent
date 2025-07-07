@@ -8,11 +8,19 @@ from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain.agents import initialize_agent
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+os.environ["HUGGINGFACE_API_KEY"] = os.getenv("HUGGINGFACE_API_KEY")
+
 
 # --- 1. LLM and DB Setup ---
 sql_llm = ChatGroq(model="gemma2-9b-it", temperature=0.2, streaming=True)
 
-db = SQLDatabase.from_uri("sqlite:///C:/Users/v-niranr/OneDrive - Microsoft/Desktop/Telecom Usecase/Data/telecom_usecase.db")
+db = SQLDatabase.from_uri("sqlite:///C:/Users/niranjan.r.lv.LV-SL2316/Desktop/Telecom Usecase/Telecom_Conversation_Agent/Telecom_Agent/telecom_customer.db")
 toolkit = SQLDatabaseToolkit(db=db, llm=sql_llm)
 
 agent_executor = initialize_agent(
