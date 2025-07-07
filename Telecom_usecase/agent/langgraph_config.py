@@ -2,12 +2,10 @@
 from langgraph.graph import StateGraph, END, START
 from agent.supervisor_node import supervisor_node
 from agent.Sql_agent import sql_agent
-from agent.rag_agent import rag_agent
+from agent.rag_agent import RAG_agent
 from agent.plan_summary import Plan_Explainer
 from agent.summarizer import summarizer_agent
-# from agent.router import router_node, AgentState  # Assuming both are defined
-from agent.router import Router, AgentState
-
+from agent.router import router_node, AgentState  # Assuming both are defined
 import os
 from dotenv import load_dotenv
 
@@ -15,14 +13,12 @@ load_dotenv()
 
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 os.environ["HUGGINGFACE_API_KEY"] = os.getenv("HUGGINGFACE_API_KEY")
-
-
 # Build graph
 app_workflow = StateGraph(AgentState)
 
 app_workflow.add_node("supervisor_agent", supervisor_node)
 app_workflow.add_node("SQL_agent", sql_agent)
-app_workflow.add_node("RAG_agent", rag_agent)
+app_workflow.add_node("RAG_agent", RAG_agent)
 app_workflow.add_node("Plan_Explainer", Plan_Explainer)
 app_workflow.add_node("summarizer_agent", summarizer_agent)
 
@@ -31,7 +27,7 @@ app_workflow.add_edge("supervisor_agent", "SQL_agent")
 
 app_workflow.add_conditional_edges(
     "SQL_agent",
-    Router,
+    router_node,
     {
         "Plan_Explainer": "Plan_Explainer",
         "RAG_agent": "RAG_agent",

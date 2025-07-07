@@ -1,9 +1,8 @@
 from typing import TypedDict, List, Optional
-# from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.embeddings import HuggingFaceEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.messages import AIMessage
-
 import os
 from dotenv import load_dotenv
 
@@ -34,28 +33,33 @@ local_vector_db = FAISS.load_local(
     allow_dangerous_deserialization=True
 )
 
-# --- 4. RAG Agent Node Function ---
-def rag_agent(state: AgentState) -> AgentState:
+from langchain_core.tools import tool
+
+def RAG_agent(state: AgentState) -> AgentState:
     print("--------------------------RAG Agent Node---------------------------")
     query = state.get("user_query")
 
-    if not query:
-        return {
-            **state,
-            "messages": state["messages"] + [AIMessage(content="No query found to retrieve context.")],
-            "retrieved_context": None
-        }
+    """
+    Combines the user query and SQL customer context to retrieve the most relevant information 
+    from the vector DB (e.g. troubleshooting guides, plan info, etc.).
 
-    # Retrieve from vector store
-    retriever = local_vector_db.as_retriever(search_kwargs={"k": 1})
+    Parameters:
+    - query (str): The user's original question (e.g., "Why is my network slow?")
+    - customer_context (str): The context retrieved from SQL agent (e.g., customer location, plan, device)
+
+    Returns:
+    - str: Top-k retrieved document contents concatenated.
+    """
+
+    # Assuming local_vector_db is already loaded globally with embeddings
+    retriever = local_vector_db.as_retriever(search_kwargs={"k": 5})
     documents = retriever.invoke(query)
 
-    # Concatenate retrieved docs
     context = "\n\n".join([doc.page_content for doc in documents])
+
     print(f"Retrieved context for query '{query}':\n{context}\n")
 
     return {
-        **state,
         "messages": state["messages"] + [AIMessage(content=context)],
         "retrieved_context": context
     }

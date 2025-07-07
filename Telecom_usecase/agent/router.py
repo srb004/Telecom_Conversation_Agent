@@ -1,4 +1,11 @@
 from typing import TypedDict, List, Optional
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+os.environ["HUGGINGFACE_API_KEY"] = os.getenv("HUGGINGFACE_API_KEY")
 
 class AgentState(TypedDict):
     messages: List
@@ -8,15 +15,7 @@ class AgentState(TypedDict):
     customer_data: Optional[str]
     retrieved_context: Optional[str]
 
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
-os.environ["HUGGINGFACE_API_KEY"] = os.getenv("HUGGINGFACE_API_KEY")
-
-def Router(state: AgentState) -> str:
+def router_node(state: AgentState) -> str:
     print("--------------------------Router Node---------------------------")
     intent = state.get("intent", "").lower()
 

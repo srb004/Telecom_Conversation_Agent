@@ -1,9 +1,9 @@
 from typing import TypedDict, List, Optional
+from pydantic import BaseModel, Field
+from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import AIMessage
-from langchain_groq import ChatGroq
-import re
-
+from langchain_groq import ChatGroq  # Adjust import if you use a different provider
 import os
 from dotenv import load_dotenv
 
@@ -12,7 +12,8 @@ load_dotenv()
 os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 os.environ["HUGGINGFACE_API_KEY"] = os.getenv("HUGGINGFACE_API_KEY")
 
-# --- AgentState Definition ---
+
+# --- 1. Agent State Definition ---
 class AgentState(TypedDict):
     messages: List
     customer_id: Optional[str]
@@ -20,108 +21,66 @@ class AgentState(TypedDict):
     user_query: Optional[str]
     customer_data: Optional[str]
     retrieved_context: Optional[str]
-    complaint_resolution: Optional[str]
-    query_response: Optional[str]
-    plan_details: Optional[str]
-    cross_sell_recommendation: Optional[str]
 
-# --- LLM Initialization ---
-llm = ChatGroq(model_name="deepseek-r1-distill-llama-70b", temperature=0.3, streaming=True)
 
-# --- Summarizer Node ---
-def summarizer_agent(state: AgentState) -> AgentState:
-    print("--------------------------Summarizer Node---------------------------")
+# --- 2. Intent Classifier Model ---
+class Intent_Classifier(BaseModel):
+    """Intent Classifier"""
+    customer_id: str = Field(description="The customer ID in the format CUSTXXXX")
+    intent: str = Field(description="Intent of the user query")
+    query: str = Field(description="User query")
+    Reasoning: str = Field(description='Reasoning behind topic selection')
 
-    intent = state.get("intent", "").lower()
-    print("Intent:", intent)
 
-    customer_id = state.get("customer_id", "Unknown")
-    query = state.get("user_query", "N/A")
-    query_response = state.get("query_response", "N/A")
-    plan_details = state.get("plan_details", "N/A")
-    cross_sell_recommendation = state.get("cross_sell_recommendation", "N/A")
+# --- 3. Parser and LLM Setup ---
+parser = PydanticOutputParser(pydantic_object=Intent_Classifier)
 
-    base_inputs = {
-        "customer_id": customer_id,
-        "query": query,
-    }
+llm = ChatGroq(temperature=0, model_name="deepseek-r1-distill-llama-70b", streaming=True)
 
-    if intent == "plan":
-        template = """
-You are a warm, friendly telecom assistant. Write a helpful and human-like message in response to the user's plan concerns.
+# --- 4. Supervisor Node ---
+def supervisor_node(state: AgentState) -> AgentState:
+    
+    print("--------------------------Supervisor---------------------------")
+    # user_question = state["messages"][-1].content
+    messages = state["messages"]
+    user_question = messages[-1].content
 
-- Begin with a friendly greeting and apology (include emoji like 👋 and 😊).
-- Mention the current plan (use what's given in "Plan Details").
-- Acknowledge the user's concern and recommend an upgraded plan if relevant.
-- Explain benefits in a simple and friendly tone.
-- End with a question like: "Would you like me to help you upgrade or explore other options?"
+    template  = """
+        You are a telecom assistant that classifies the user's intent into one of the following:
+    - Plan: If the user is asking about mobile, broadband, or 5G plans.
+    - Complaint: If the user is reporting issues like network outage, slow internet, or billing problems.
+    - Other: For greetings, general questions, or unrelated topics.
 
-Compose the message in a conversational tone. DO NOT include <think> or reasoning steps.
+    Your job is to classify the intent and explain your reasoning.
 
----
-Customer ID: {customer_id}
-User Query: {query}
-Plan Details: {plan_details}
-Query Response: {query_response}
-Recommended Upgrade: {cross_sell_recommendation}
-        """
-        inputs = {
-            **base_inputs,
-            "plan_details": plan_details,
-            "query_response": query_response,
-            "cross_sell_recommendation": cross_sell_recommendation,
-        }
+    User Query: {question}
 
-    elif intent == "complaint":
-        grievance_context = state.get("retrieved_context", "")
-        complaint_response = state.get("complaint_resolution", "")
+    {format_instructions}
+    """
+    prompt = PromptTemplate(
+        input_variables = ["question"],
+        partial_variables={"format_instructions": parser.get_format_instructions()},
+        template = template
+    )
 
-        template = """
-You are a kind and professional telecom assistant helping a customer with a complaint.
+    chain = prompt | llm | parser
 
-Your goal is to:
-- Understand the user’s concern from their query.
-- Read the retrieved context (which may include a general solution from other similar cases).
-- Use the resolution (if any) to provide a reassuring and helpful response.
-- Empathize with the customer. Keep your tone friendly, polite, and professional.
-- DO NOT refer to the context or resolution as being from another user — just use it to help you answer.
-- DO NOT mention bullet points, tags, or internal data. Just give a natural, conversational response in 3–4 lines.
+    try:
+        response = chain.invoke({"question": user_question})
+        print("Parsed Response:", response)
+    except Exception as e:
+        print("Supervisor chain failed:", e)
+        response = None
 
----
-Customer ID: {customer_id}
-User Query: {query}
-Context: {grievance_context}
-Resolution: {complaint_response}
-        """
-        inputs = {
-            **base_inputs,
-            "grievance_context": grievance_context,
-            "complaint_response": complaint_response
-        }
 
-    else:
-        template = """
-You are a friendly assistant. Acknowledge the user's query and let them know you'll look into it.
-
----
-Customer ID: {customer_id}
-User Query: {query}
-        """
-        inputs = base_inputs
-
-    # Prompt + Chain + Invoke
-    prompt = PromptTemplate.from_template(template)
-    chain = prompt | llm
-    response = chain.invoke(inputs)
-
-    raw_summary = response.content if hasattr(response, "content") else str(response)
-
-    # Remove <think> ... </think> section if present
-    summary_text = re.sub(r"<think>.*?</think>", "", raw_summary, flags=re.DOTALL).strip()
-    print("Summary Text:", summary_text)
 
     return {
-        **state,
-        "messages": state.get("messages", []) + [AIMessage(content=summary_text)],
-        "summary": summary_text
+        "messages": state["messages"] + [
+            AIMessage(content=f"Intent: {response.intent}"),
+            AIMessage(content=f"Reasoning: {response.Reasoning}"),
+            AIMessage(content=f"Customer ID: {response.customer_id}")
+        ],
+        "customer_id": response.customer_id,
+        "intent": response.intent,
+        "user_query": response.query
     }

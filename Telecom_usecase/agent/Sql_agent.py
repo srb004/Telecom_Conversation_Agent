@@ -1,13 +1,8 @@
-# agent/sql_agent.py
+# agent/sql_agent.py (Updated to use direct SQLite access)
 
-import re
-import json
+import sqlite3
 from typing import Dict, Any
-from langchain_groq import ChatGroq
 from langchain_community.utilities import SQLDatabase
-from langchain_community.agent_toolkits import SQLDatabaseToolkit
-from langchain.agents import initialize_agent
-
 import os
 from dotenv import load_dotenv
 
@@ -17,35 +12,40 @@ os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
 os.environ["HUGGINGFACE_API_KEY"] = os.getenv("HUGGINGFACE_API_KEY")
 
 
-# --- 1. LLM and DB Setup ---
-sql_llm = ChatGroq(model="gemma2-9b-it", temperature=0.2, streaming=True)
+# --- 1. Direct SQL Query Function ---
+def get_customer_details(customer_id: str, db_path: str) -> dict:
+    db_path = r"C:\Users\niranjan.r.lv.LV-SL2316\Desktop\Telecom Usecase\Telecom_Conversation_Agent\Final Files\telecom_customer.db"
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
 
-db = SQLDatabase.from_uri("sqlite:///C:/Users/niranjan.r.lv.LV-SL2316/Desktop/Telecom Usecase/Telecom_Conversation_Agent/Telecom_Agent/telecom_customer.db")
-toolkit = SQLDatabaseToolkit(db=db, llm=sql_llm)
+    query = """
+    SELECT 
+        "Customer ID", "Customer Name", Age, Gender, Location,
+        "Plan Subscribed", "Device Used", "Plan Details",
+        "Network Type", "Join Date", "Recent Issue Reported", "Response Provided"
+    FROM customers
+    WHERE "Customer ID" = ?
+    """
 
-agent_executor = initialize_agent(
-    tools=toolkit.get_tools(),
-    llm=sql_llm,
-    agent="zero-shot-react-description",
-    verbose=True
-)
+    cursor.execute(query, (customer_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        return None
+
+    keys = [
+        "Customer ID", "Customer Name", "Age", "Gender", "Location",
+        "Plan Subscribed", "Device Used", "Plan Details",
+        "Network Type", "Join Date", "Recent Issue Reported", "Response Provided"
+    ]
+    return dict(zip(keys, row))
 
 
-# --- 2. Helper Function to Parse JSON ---
-def extract_json_from_string(text: str) -> Dict[str, Any]:
-    text = text.strip("` \n")
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        raise ValueError("No JSON object found in response.")
-    json_str = match.group(0)
-    json_str = json_str.replace("\\x93", "-").replace("'", '"')
-    return json.loads(json_str)
-
-
-# --- 3. SQL Agent Node Function ---
+# --- 2. SQL Agent Node Function ---
 def sql_agent(state: dict) -> dict:
-    print("------------ SQL Agent Node ------------")
-
+    print("------------ SQL Agent Node (Direct SQL) ------------")
+    
     customer_id = state.get("customer_id")
     if not customer_id:
         return {
@@ -53,21 +53,20 @@ def sql_agent(state: dict) -> dict:
             "messages": state["messages"] + [("assistant", "Customer ID is missing.")],
             "customer_data": None
         }
+    
+    customer_data = get_customer_details(customer_id, db_path="telecom_usecase.db")
 
-    query = f"Get customer details for ID '{customer_id}' from the 'customers' table. Respond only with the result in JSON format."
+    if customer_data is None:
+        return {
+            **state,
+            "messages": state["messages"] + [("assistant", f"No customer found with ID: {customer_id}")],
+            "customer_data": None
+        }
 
-    response = agent_executor.invoke({"input": query})
-    full_output = response.get("output", str(response))
-
-    try:
-        parsed_data = extract_json_from_string(full_output)
-    except Exception as e:
-        parsed_data = None
-        full_output += f"\n\n Parsing error: {str(e)}"
+    print(f"Customer_data: {customer_data}")
 
     return {
         **state,
-        "messages": state["messages"] + [("assistant", full_output)],
-        "customer_data": parsed_data
+        "messages": state["messages"] + [("assistant", f"Customer data fetched for ID {customer_id}.")],
+        "customer_data": customer_data
     }
-
